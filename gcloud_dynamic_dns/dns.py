@@ -42,7 +42,7 @@ def my_ip(kind: Iterable[socket.AddressFamily] = IPV4_6, query_host: str = "ifco
 
 
 def update_dns(zone_name: str, dns_name: str, ttl: int = 60, force_update: bool = False,
-               project_id: Optional[str] = None):
+               project_id: Optional[str] = None, ip_kind: Iterable[socket.AddressFamily] = (socket.AddressFamily.AF_INET, socket.AddressFamily.AF_INET6)):
     """
     Updates a GCP Cloud DNS zone with the host's current IP as it appears from the internet
     :param zone_name: the name of the zone in your GCP project
@@ -53,10 +53,12 @@ def update_dns(zone_name: str, dns_name: str, ttl: int = 60, force_update: bool 
     :return: the applied change set
     """
 
+    addresses = my_ip(ip_kind)
+    
     if not dns_name.endswith("."):
         dns_name = "%s." % dns_name
 
-    if len(resolve_addresses(dns_name).symmetric_difference(my_ip())) == 0 and not force_update:
+    if len(resolve_addresses(dns_name).symmetric_difference(addresses)) == 0 and not force_update:
         return
 
     if project_id:
@@ -65,7 +67,6 @@ def update_dns(zone_name: str, dns_name: str, ttl: int = 60, force_update: bool 
         client = dns.Client()
     zone = client.zone(zone_name)
 
-    addresses = my_ip()
     ipv4_addresses = set(filter(lambda _ip: len(_ip.split(".")) == 4, addresses))
     ipv6_addresses = addresses - ipv4_addresses
 
